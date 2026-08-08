@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>깐죽이</title>
+<meta name="description" content="장난기 많고 짓궂은 AI 챗봇, 깐죽이" />
+<link rel="icon" type="image/svg+xml" href="/icon.svg" />
+<link rel="icon" type="image/png" href="/icon-192.png" />
+<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+<link rel="manifest" href="/manifest.json" />
+<meta name="theme-color" content="#FF7A59" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-title" content="깐죽이" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<link href="https://fonts.googleapis.com/css2?family=Jua&family=Gaegu:wght@400;700&display=swap" rel="stylesheet" />
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    display: flex; justify-content: center; align-items: center;
+    padding: 16px;
+    background: radial-gradient(circle at 30% 20%, #FFEFC2 0%, #FFD9A0 60%, #FFC074 100%);
+    font-family: 'Gaegu', sans-serif;
+  }
+  @keyframes pop { 0% { transform: scale(0.8); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+  @keyframes wiggle { 0%,100% { transform: rotate(-6deg); } 50% { transform: rotate(6deg); } }
+  @keyframes blink { 0%,90%,100% { transform: scaleY(1); } 95% { transform: scaleY(0.1); } }
+  @keyframes dots { 0%,20% { opacity: 0.2; } 50% { opacity: 1; } 80%,100% { opacity: 0.2; } }
+  .jb-msg { animation: pop 0.22s ease-out; }
+  .jb-face { animation: wiggle 2.4s ease-in-out infinite; }
+  .jb-eye { animation: blink 4s infinite; transform-origin: center; }
+  .jb-send:active { transform: translateY(2px) scale(0.96); }
+  .jb-d1 { animation: dots 1.2s infinite; }
+  .jb-d2 { animation: dots 1.2s infinite 0.2s; }
+  .jb-d3 { animation: dots 1.2s infinite 0.4s; }
+
+  .phone {
+    width: 100%; max-width: 420px; height: min(640px, 90vh);
+    background: #FFFDF5; border-radius: 28px; border: 3px solid #1A1A2E;
+    box-shadow: 8px 8px 0 #1A1A2E; display: flex; flex-direction: column; overflow: hidden;
+  }
+  .header {
+    display: flex; align-items: center; gap: 12px; padding: 14px 18px;
+    background: #FF7A59; border-bottom: 3px solid #1A1A2E;
+  }
+  .name { font-family: 'Jua', sans-serif; font-size: 22px; color: #FFFDF5; line-height: 1; }
+  .status { font-size: 14px; color: #FFE6DE; display: flex; align-items: center; gap: 5px; margin-top: 2px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: #7CFF6B; display: inline-block; border: 1.5px solid #1A1A2E; }
+  .chat { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+  .row { display: flex; width: 100%; }
+  .bubble {
+    max-width: 78%; padding: 10px 14px; font-size: 18px; line-height: 1.35; white-space: pre-wrap; word-break: break-word;
+  }
+  .bot {
+    background: #FFE14D; color: #1A1A2E; border-radius: 4px 18px 18px 18px; border: 2.5px solid #1A1A2E;
+  }
+  .user {
+    background: #1A1A2E; color: #FFFDF5; border-radius: 18px 4px 18px 18px;
+  }
+  .inputBar { display: flex; gap: 8px; padding: 12px; border-top: 3px solid #1A1A2E; background: #FFFDF5; }
+  .input {
+    flex: 1; border: 2.5px solid #1A1A2E; border-radius: 14px; padding: 10px 14px;
+    font-size: 17px; font-family: 'Gaegu', sans-serif; outline: none; background: #FFFDF5; color: #1A1A2E;
+  }
+  .send {
+    background: #FF7A59; color: #FFFDF5; border: 2.5px solid #1A1A2E; border-radius: 14px;
+    padding: 0 18px; font-size: 18px; font-family: 'Jua', sans-serif; cursor: pointer;
+    box-shadow: 3px 3px 0 #1A1A2E; transition: transform 0.08s;
+  }
+  .send:disabled { opacity: 0.5; }
+  .attach { background: #FFE14D; color: #1A1A2E; border: 2.5px solid #1A1A2E; border-radius: 14px; padding: 0 14px; font-size: 22px; font-family: 'Jua', sans-serif; cursor: pointer; box-shadow: 3px 3px 0 #1A1A2E; transition: transform 0.08s; flex-shrink: 0; }
+  .attach:active { transform: translateY(2px) scale(0.96); }
+  .preview { display: flex; align-items: flex-start; gap: 6px; padding: 10px 12px 0; }
+  .previewImg { height: 60px; border-radius: 10px; border: 2.5px solid #1A1A2E; object-fit: cover; }
+  .previewX { background: #1A1A2E; color: #FFFDF5; border: none; border-radius: 50%; width: 22px; height: 22px; cursor: pointer; font-size: 11px; line-height: 1; flex-shrink: 0; }
+  .sentImg { display: block; max-width: 100%; border-radius: 10px; border: 2px solid #1A1A2E; margin-bottom: 6px; }
+</style>
+</head>
+<body>
+  <div class="phone">
+    <div class="header">
+      <div class="jb-face" style="width:40px;height:40px;flex-shrink:0;">
+        <svg width="40" height="40" viewBox="0 0 40 40">
+          <rect x="2.5" y="2.5" width="35" height="35" rx="10" fill="#FFE14D" stroke="#1A1A2E" stroke-width="2.5" />
+          <circle class="jb-eye" cx="15" cy="18" r="2.4" fill="#1A1A2E" />
+          <path d="M22 19 Q25.5 15 29 19" stroke="#1A1A2E" stroke-width="2.4" fill="none" stroke-linecap="round" />
+          <path d="M14 25 Q20 31 28 23" stroke="#1A1A2E" stroke-width="2.4" fill="none" stroke-linecap="round" />
+          <circle cx="12" cy="24" r="2" fill="#FF5A3C" opacity="0.5" />
+          <circle cx="30" cy="23" r="2" fill="#FF5A3C" opacity="0.5" />
+        </svg>
+      </div>
+      <div>
+        <div class="name">깐죽이</div>
+        <div class="status"><span class="dot"></span> 까불 준비 완료</div>
+      </div>
+    </div>
+
+    <div class="chat" id="chat"></div>
+
+    <div class="preview" id="preview" style="display:none;">
+      <img class="previewImg" id="previewImg" alt="첨부" />
+      <button class="previewX" id="previewX">✕</button>
+    </div>
+
+    <div class="inputBar">
+      <input type="file" id="file" accept="image/*" style="display:none;" />
+      <button class="attach jb-send" id="attach" title="사진 보내기">＋</button>
+      <input class="input" id="input" placeholder="뭐라도 말 걸어봐..." />
+      <button class="send jb-send" id="send">보내기</button>
+    </div>
+  </div>
+
+<script>
+  // 대화 기록 (AI는 기억이 없어서 매번 전체를 같이 보냄)
+  let messages = [
+    { role: "assistant", content: "왔어? 뭐 심심해서 왔지 ㅋㅋ 말 걸어봐, 받아줄게." },
+  ];
+  let loading = false;
+  let image = null; // { dataUrl, mediaType, base64 }
+
+  const chatEl = document.getElementById("chat");
+  const inputEl = document.getElementById("input");
+  const sendEl = document.getElementById("send");
+  const fileEl = document.getElementById("file");
+  const attachEl = document.getElementById("attach");
+  const previewEl = document.getElementById("preview");
+  const previewImgEl = document.getElementById("previewImg");
+  const previewXEl = document.getElementById("previewX");
+
+  function renderPreview() {
+    if (image) {
+      previewImgEl.src = image.dataUrl;
+      previewEl.style.display = "flex";
+      inputEl.placeholder = "사진에 한마디 붙여봐 (선택)";
+    } else {
+      previewEl.style.display = "none";
+      inputEl.placeholder = "뭐라도 말 걸어봐...";
+    }
+  }
+
+  function render() {
+    chatEl.innerHTML = "";
+    messages.forEach((m) => {
+      const row = document.createElement("div");
+      row.className = "row jb-msg";
+      row.style.justifyContent = m.role === "user" ? "flex-end" : "flex-start";
+      const bubble = document.createElement("div");
+      bubble.className = "bubble " + (m.role === "user" ? "user" : "bot");
+      if (m.image) {
+        const img = document.createElement("img");
+        img.className = "sentImg";
+        img.src = m.image.dataUrl;
+        bubble.appendChild(img);
+      }
+      if (m.content) {
+        const span = document.createElement("span");
+        span.textContent = m.content;
+        bubble.appendChild(span);
+      }
+      row.appendChild(bubble);
+      chatEl.appendChild(row);
+    });
+    if (loading) {
+      const row = document.createElement("div");
+      row.className = "row jb-msg";
+      row.style.justifyContent = "flex-start";
+      row.innerHTML = '<div class="bubble bot"><span class="jb-d1">●</span> <span class="jb-d2">●</span> <span class="jb-d3">●</span></div>';
+      chatEl.appendChild(row);
+    }
+    chatEl.scrollTop = chatEl.scrollHeight;
+  }
+
+  fileEl.addEventListener("change", (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = String(reader.result);
+      image = { dataUrl: dataUrl, mediaType: file.type || "image/png", base64: dataUrl.split(",")[1] };
+      renderPreview();
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  });
+
+  attachEl.addEventListener("click", () => fileEl.click());
+  previewXEl.addEventListener("click", () => { image = null; renderPreview(); });
+
+  async function send() {
+    const text = inputEl.value.trim();
+    if ((!text && !image) || loading) return;
+
+    messages.push({ role: "user", content: text, image: image });
+    inputEl.value = "";
+    image = null;
+    renderPreview();
+    loading = true;
+    render();
+
+    try {
+      // 화면용 메시지 → API용 형식으로 변환 (사진은 image 블록으로)
+      const apiMessages = messages.map((m) => {
+        if (m.image) {
+          return {
+            role: m.role,
+            content: [
+              { type: "image", source: { type: "base64", media_type: m.image.mediaType, data: m.image.base64 } },
+              { type: "text", text: m.content || "이 사진 봐봐" },
+            ],
+          };
+        }
+        return { role: m.role, content: m.content };
+      });
+
+      // 키 없이 내 서버(/api/chat)만 부른다. 키는 서버가 숨기고 있음.
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages: apiMessages }),
+      });
+      const data = await res.json();
+      const reply = (data.content || [])
+        .map((b) => (b.type === "text" ? b.text : ""))
+        .filter(Boolean)
+        .join("\n");
+      messages.push({ role: "assistant", content: reply || "어? 할 말을 잃었네 ㅋㅋ" });
+    } catch (err) {
+      messages.push({ role: "assistant", content: "삐빅- 나 잠깐 딴짓하다 놓쳤어. 다시 말해줄래?" });
+    } finally {
+      loading = false;
+      render();
+    }
+  }
+
+  sendEl.addEventListener("click", send);
+  inputEl.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
+  });
+
+  render();
+</script>
+</body>
+</html>
