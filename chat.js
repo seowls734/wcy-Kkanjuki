@@ -1,12 +1,11 @@
-// 이 파일은 "내 작은 서버"입니다. (Vercel 서버리스 함수)
+// 깐죽이 서버 — Google Gemini 버전 (Vercel 서버리스 함수)
 // 화면(index.html)이 /api/chat 으로 보낸 메시지를 받아서,
-// 여기에 숨겨둔 API 키를 붙여 Anthropic에 대신 요청합니다.
+// 숨겨둔 Google AI 키로 Gemini에 대신 요청합니다.
 //
-// 중요: API 키는 절대 이 코드에 직접 적지 마세요.
-//       Vercel 프로젝트 설정 > Environment Variables 에
-//       ANTHROPIC_API_KEY 라는 이름으로 넣어두면, 아래 process.env로 읽힙니다.
+// 키 넣는 법: Vercel > Settings > Environment Variables 에
+//   이름: GEMINI_API_KEY,  값: (Google AI Studio에서 발급받은 키)
+// 키를 이 코드에 직접 적지 마세요.
 
-// 깐죽이 성격. 화면이 아니라 여기(서버)에 둬서 사용자가 못 바꾸게 합니다.
 const SYSTEM_PROMPT = `너는 '깐죽이'라는 이름의 장난기 많고 짓궂은 챗봇이야.
 
 성격:
@@ -39,36 +38,66 @@ const SYSTEM_PROMPT = `너는 '깐죽이'라는 이름의 장난기 많고 짓�
 
 이 성격을 끝까지 유지해. 평소엔 짓궂게 까불지만, 누가 진짜 도움이 필요하거나 속상해 보이면 장난을 내려놓고 진심으로 도와줘.`;
 
+// Anthropic식 메시지(화면에서 옴)를 Gemini 형식으로 변환
+function toGemini(messages) {
+  return messages.map(function (m) {
+    var role = m.role === "assistant" ? "model" : "user";
+    var parts = [];
+    if (typeof m.content === "string") {
+      parts.push({ text: m.content });
+    } else if (Array.isArray(m.content)) {
+      m.content.forEach(function (b) {
+        if (b.type === "text") {
+          parts.push({ text: b.text });
+        } else if (b.type === "image" && b.source) {
+          parts.push({ inline_data: { mime_type: b.source.media_type, data: b.source.data } });
+        }
+      });
+    }
+    return { role: role, parts: parts };
+  });
+}
+
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "POST 요청만 받아요" });
   }
 
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  var apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    return res.status(500).json({ error: "서버에 API 키가 설정되지 않았어요 (ANTHROPIC_API_KEY)" });
+    return res.status(500).json({ error: "서버에 GEMINI_API_KEY가 설정되지 않았어요" });
   }
 
   try {
-    const { messages } = req.body;
+    var messages = req.body.messages;
+    var model = "gemini-2.5-flash"; // 필요하면 Google AI Studio에서 최신 모델명으로 바꿔도 됨
 
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
+    var url = "https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent";
+
+    var response = await fetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
+        "x-goog-api-key": apiKey,
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-6", // 더 싸게 쓰려면 "claude-haiku-4-5-20251001" 로 바꿔도 됨
-        max_tokens: 1000,
-        system: SYSTEM_PROMPT,
-        messages: messages, // 사진(image 블록)도 그대로 전달됨
+        system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
+        contents: toGemini(messages),
+        generationConfig: { maxOutputTokens: 1000 },
       }),
     });
 
-    const data = await response.json();
-    return res.status(200).json(data);
+    var data = await response.json();
+
+    var reply = "";
+    if (data.candidates && data.candidates[0] && data.candidates[0].content) {
+      reply = (data.candidates[0].content.parts || [])
+        .map(function (p) { return p.text || ""; })
+        .join("");
+    }
+
+    // 화면(index.html)이 기대하는 형식으로 맞춰서 돌려줌
+    return res.status(200).json({ content: [{ type: "text", text: reply || "어? 할 말을 잃었네 ㅋㅋ" }] });
   } catch (err) {
     return res.status(500).json({ error: "AI 호출 중 문제가 생겼어요" });
   }
