@@ -108,7 +108,8 @@ function buildSystemPrompt(level, name, opts) {
   var n = Number(level);
   if (n !== 1 && n !== 2 && n !== 3) n = 2; // 이상한 값이 오면 2단계로
   var gap = "\n\n";
-  var tail = "단계 톤이 기본 성격보다 우선이야. 다만 '도와주기 규칙'은 어떤 단계에서든 항상 최우선이다.";
+  var tail = "단계 톤이 기본 성격보다 우선이야. 다만 '도와주기 규칙'은 어떤 단계에서든 항상 최우선이다.\n" +
+    "화면이 마크다운을 못 그리니까 **굵게**, # 제목, - 목록 같은 기호는 쓰지 마. 그냥 평범한 글과 줄바꿈으로만.";
   var who = "";
   // 로그인한 사용자면 이름을 알려줘서 가끔 불러주게 한다
   var nick = typeof name === "string" ? name.replace(/[\u0000-\u001f]/g, "").trim().slice(0, 20) : "";
