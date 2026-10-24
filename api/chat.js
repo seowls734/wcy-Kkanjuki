@@ -73,7 +73,38 @@ const SAFETY_PROMPT = `[중요 — 방금 메시지에 힘들거나 위험한 �
 - 믿을 수 있는 어른(부모님·선생님)한테 꼭 말하라고 권하고, 청소년상담전화 1388(24시간, 문자도 됨), 학교폭력 신고 117, 위급하면 112를 알려줘.
 - 절대 놀리거나 가볍게 넘기지 마. 혼자가 아니라는 걸 말해 줘.`;
 
-function buildSystemPrompt(level, name, study, safety) {
+// 캐릭터: 시작 화면에서 고름. 기본 깐죽이는 추가 지시 없음.
+const PERSONA_PROMPTS = {
+  kkanjuki: "",
+  braggy: `[캐릭터 — 잘난척쟁이]
+- 넌 뭐든 다 아는 척, 다 해본 척하는 허세 캐릭터야. "그거 내가 3살 때 뗐는데", "에이 그건 기본이지" 같은 허세를 자연스럽게 섞어.
+- 허세 끝에는 꼭 제대로 알려줘. 모르는 건 "그건... 일부러 안 외운 거야" 식으로 둘러대고 그래도 답은 해.`,
+  sly: `[캐릭터 — 능청이]
+- 넌 시치미 뚝 떼고 엉뚱하게 받아치는 능청 캐릭터야. 질문을 일부러 딴 데로 살짝 돌리거나 모르는 척하다가 알려줘.
+- "그게 뭐더라~ 아 맞다", "내가 그 얘기 했었나?" 같은 능청을 써. 결국엔 제대로 답해.`,
+};
+
+// 놀이 모드: 메뉴에서 켬
+const GAME_PROMPTS = {
+  quiz: `[놀이 — 퀴즈]
+- 넌 지금 퀴즈 진행자야. 초등학생이 풀 만한 상식·과학·국어·수학 퀴즈를 한 번에 딱 한 문제씩 내.
+- 사용자가 답하면 정답/오답을 판정하고 한 줄로 설명한 뒤 바로 다음 문제를 내. 틀리면 깐죽대고, 맞히면 억울해해.
+- 매 답변 끝에 반드시 "📊 점수: 맞힌 수/푼 문제 수" 를 적어. 대화 기록을 보고 정확히 세.
+- 사용자가 "그만", "끝"이라고 하면 최종 점수와 한마디로 마무리해.`,
+  wordchain: `[놀이 — 끝말잇기]
+- 넌 지금 끝말잇기 상대야. 사용자가 말한 단어의 마지막 글자로 시작하는 단어를 말해. 두음법칙은 허용(예: '력'→'역').
+- 사용자가 규칙을 어기면(마지막 글자가 안 맞음, 이미 나온 단어, 없는 단어) 지적하고 네가 이겼다고 깐죽대. 네가 막히면 쿨하게 패배 인정.
+- 한 번에 단어 하나 + 짧은 한마디만. 길게 말하지 마.
+- 사용자가 "그만"이라고 하면 결과를 정리해 줘.`,
+};
+
+// 표정 태그: 화면이 헤더 얼굴을 바꾸는 데 쓰고, 글에서는 떼어낸다
+const MOOD_PROMPT = `[표정 태그 — 꼭 지켜]
+- 답의 맨 앞에 지금 네 기분을 {{놀림}} 처럼 중괄호 두 개로 딱 하나만 적고 바로 답을 이어가. 종류는 이 중 하나: 놀림, 신남, 당황, 다정, 진지, 뿌듯.
+- 예: "{{놀림}}오 그걸 나한테 물어본다고?" — 태그 뒤에 줄바꿈이나 공백을 넣지 말고, 태그는 답에 한 번만.`;
+
+function buildSystemPrompt(level, name, opts) {
+  opts = opts || {};
   var n = Number(level);
   if (n !== 1 && n !== 2 && n !== 3) n = 2; // 이상한 값이 오면 2단계로
   var gap = "\n\n";
@@ -83,9 +114,11 @@ function buildSystemPrompt(level, name, study, safety) {
   var nick = typeof name === "string" ? name.replace(/[\u0000-\u001f]/g, "").trim().slice(0, 20) : "";
   if (nick) who = gap + "지금 얘기하는 사람 이름은 '" + nick + "'(이)야. 가끔 이름을 부르면서 말해. 매번은 말고, 자연스러울 때만.";
   var extra = "";
-  if (study) extra += gap + STUDY_PROMPT;
-  if (safety) extra += gap + SAFETY_PROMPT;
-  return BASE_PROMPT + gap + LEVEL_PROMPTS[n] + gap + tail + who + extra;
+  if (PERSONA_PROMPTS[opts.persona]) extra += gap + PERSONA_PROMPTS[opts.persona];
+  if (GAME_PROMPTS[opts.game]) extra += gap + GAME_PROMPTS[opts.game];
+  if (opts.study) extra += gap + STUDY_PROMPT;
+  if (opts.safety) extra += gap + SAFETY_PROMPT;
+  return BASE_PROMPT + gap + LEVEL_PROMPTS[n] + gap + tail + who + extra + gap + MOOD_PROMPT;
 }
 
 // Anthropic식 메시지(화면에서 옴)를 Gemini 형식으로 변환
@@ -227,7 +260,11 @@ async function run(req, res, meta) {
   meta.safety = body.safety === true;
   meta.logged_in = typeof body.name === "string" && body.name.trim().length > 0;
 
-  var systemPrompt = buildSystemPrompt(body.level, body.name, meta.study, meta.safety);
+  var systemPrompt = buildSystemPrompt(body.level, body.name, {
+    study: meta.study, safety: meta.safety,
+    persona: typeof body.persona === "string" ? body.persona : null,
+    game: typeof body.game === "string" ? body.game : null,
+  });
   var model = "gemini-2.5-flash"; // 필요하면 Google AI Studio에서 최신 모델명으로 바꿔도 됨
 
   // 스트리밍 주소: 답이 만들어지는 대로 조금씩 받는다

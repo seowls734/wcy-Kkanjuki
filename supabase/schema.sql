@@ -72,3 +72,7 @@ create table if not exists public.usage_log (
 );
 create index if not exists usage_log_ts on public.usage_log (ts desc);
 alter table public.usage_log enable row level security;
+
+-- ===== 캐릭터·놀이 모드 =====
+alter table public.chats add column if not exists persona text;
+alter table public.chats add column if not exists game text;

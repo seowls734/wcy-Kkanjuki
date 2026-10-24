@@ -193,6 +193,28 @@
   .chatPin.on { color: #E8A800; }
   .pinMark { font-size: 13px; margin-right: 3px; }
 
+  /* 캐릭터 고르기 + 오늘의 한마디 (시작 화면) */
+  .chips { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+  .chip { border: 2.5px solid #1A1A2E; border-radius: 999px; padding: 5px 12px; background: #FFFDF5; font-family: 'Jua', sans-serif; font-size: 15px; cursor: pointer; box-shadow: 2px 2px 0 #1A1A2E; color: #1A1A2E; }
+  .chip.on { background: #1A1A2E; color: #FFFDF5; }
+  .chipDesc { text-align: center; font-size: 15px; color: #6B6B7B; margin-top: -6px; min-height: 20px; }
+  .quip { background: #FFE14D; border: 2.5px solid #1A1A2E; border-radius: 4px 18px 18px 18px; padding: 8px 12px; font-size: 16px; line-height: 1.4; cursor: pointer; margin-top: 4px; }
+  .quip small { display: block; color: #6B6B7B; font-size: 13px; margin-top: 2px; }
+
+  /* ＋ 메뉴 */
+  #chatScreen { position: relative; }
+  .menu { position: absolute; left: 12px; bottom: 74px; z-index: 4; display: none; flex-direction: column; min-width: 190px; background: #FFFDF5; border: 2.5px solid #1A1A2E; border-radius: 16px; box-shadow: 4px 4px 0 #1A1A2E; overflow: hidden; animation: pop 0.15s ease-out; }
+  .menu.show { display: flex; }
+  .menuItem { display: flex; align-items: center; gap: 10px; padding: 11px 14px; background: none; border: none; border-bottom: 1.5px solid #E8E2D0; font-family: 'Gaegu', sans-serif; font-size: 17px; color: #1A1A2E; cursor: pointer; text-align: left; }
+  .menuItem:last-child { border-bottom: none; }
+  .menuItem:active { background: #FFF7C7; }
+  .menuItem .ic { font-size: 20px; width: 24px; text-align: center; }
+  .menuItem .on { margin-left: auto; font-size: 13px; color: #2E8B57; font-family: 'Jua', sans-serif; }
+  .attach.listening { background: #FF5A3C; color: #FFFDF5; animation: pulse 0.9s infinite; }
+  @keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.12); } }
+  .iconBtn { padding: 5px 8px !important; font-size: 16px !important; }
+  .iconBtn.off { opacity: 0.45; }
+
   /* 홈 화면에 추가 안내 */
   .installBar { position: fixed; left: 50%; bottom: 14px; transform: translateX(-50%); z-index: 5; display: none; gap: 8px; align-items: center; max-width: calc(100% - 32px); background: #FFFDF5; border: 2.5px solid #1A1A2E; border-radius: 16px; box-shadow: 4px 4px 0 #1A1A2E; padding: 8px 10px 8px 14px; font-size: 15px; }
   .installBar.show { display: flex; }
@@ -233,6 +255,13 @@
       <div class="pickTitle">깐죽 단계를 골라봐</div>
       <div class="pickSub">얼마나 까불지 네가 정하는 거야</div>
 
+      <div class="chips" id="personaChips">
+        <button class="chip on" data-persona="kkanjuki">😏 깐죽이</button>
+        <button class="chip" data-persona="braggy">😎 잘난척쟁이</button>
+        <button class="chip" data-persona="sly">🙃 능청이</button>
+      </div>
+      <div class="chipDesc" id="personaDesc">기본. 적당히 짓궂고 결국엔 도와줌</div>
+
       <button class="lvl lvl1" data-level="1">
         <span class="lvlFace">🙂</span>
         <span>
@@ -256,6 +285,8 @@
           <div class="lvlDesc">각오해라. 매번 깐죽대고 능청 최대치</div>
         </span>
       </button>
+
+      <div class="quip" id="quip" title="눌러서 다른 거 보기"></div>
 
       <button class="pickBack" id="pickBack" style="display:none;">← 이전 대화 보기</button>
     </div>
@@ -291,10 +322,11 @@
       </div>
       </div>
       <div>
-        <div class="name">깐죽이</div>
+        <div class="name" id="botName">깐죽이</div>
         <div class="status"><span class="dot"></span> <span id="statusText">까불 준비 완료</span></div>
       </div>
       <div class="hdrBtns">
+        <button class="again iconBtn off" id="speak" title="답을 소리로 읽어주기">🔊</button>
         <button class="again" id="toList" title="대화 목록">목록</button>
         <button class="again" id="share" title="대화 공유">공유</button>
       </div>
@@ -318,10 +350,17 @@
       <button class="safetyX" id="safetyX" title="닫기">✕</button>
     </div>
 
+    <div class="menu" id="menu">
+      <button class="menuItem" id="mPhoto"><span class="ic">📷</span>사진 보내기</button>
+      <button class="menuItem" id="mMic"><span class="ic">🎤</span>말로 하기</button>
+      <button class="menuItem" id="study"><span class="ic">📚</span>숙제 모드<span class="on" id="studyOn"></span></button>
+      <button class="menuItem" id="mQuiz"><span class="ic">🧠</span>퀴즈<span class="on" id="quizOn"></span></button>
+      <button class="menuItem" id="mWord"><span class="ic">🔤</span>끝말잇기<span class="on" id="wordOn"></span></button>
+    </div>
+
     <div class="inputBar">
       <input type="file" id="file" accept="image/*" style="display:none;" />
-      <button class="attach jb-send" id="attach" title="사진 보내기">＋</button>
-      <button class="study" id="study" title="숙제 모드: 까불지 않고 차근차근 설명">📚</button>
+      <button class="attach jb-send" id="attach" title="메뉴">＋</button>
       <input class="input" id="input" placeholder="뭐라도 말 걸어봐..." />
       <button class="send jb-send" id="send">보내기</button>
     </div>
@@ -405,6 +444,8 @@
     if (!chat) return;
     chat.level = level;
     chat.study = study;
+    chat.persona = persona;
+    chat.game = game;
     chat.messages = slimMessages(messages);
     chat.updatedAt = Date.now();
     // 방금 쓴 대화를 맨 앞으로 (즐겨찾기는 그 위)
@@ -458,12 +499,13 @@
   // ---- 서버(Supabase) 읽고 쓰기 ----
   async function cloudLoadChats() {
     const { data, error } = await cloud
-      .from("chats").select("id, level, messages, title, pinned, study, created_at, updated_at")
+      .from("chats").select("id, level, messages, title, pinned, study, persona, game, created_at, updated_at")
       .order("updated_at", { ascending: false }).limit(MAX_CHATS);
     if (error) throw error;
     return data.map((r) => ({
       id: r.id, level: r.level, messages: r.messages || [],
       title: r.title || null, pinned: !!r.pinned, study: !!r.study,
+      persona: r.persona || "kkanjuki", game: r.game || null,
       createdAt: Date.parse(r.created_at), updatedAt: Date.parse(r.updated_at),
     }));
   }
@@ -472,6 +514,7 @@
     cloud.from("chats").upsert({
       id: chat.id, user_id: user.id, level: chat.level, messages: chat.messages,
       title: chat.title || null, pinned: !!chat.pinned, study: !!chat.study,
+      persona: chat.persona || "kkanjuki", game: chat.game || null,
       created_at: new Date(chat.createdAt).toISOString(), updated_at: new Date(chat.updatedAt).toISOString(),
     }).then(({ error }) => {
       if (error) { console.error("[깐죽이] 서버 저장 실패:", error); toast("서버 저장이 안 됐어 ㅠ"); }
@@ -586,15 +629,44 @@
   const acctEl = document.getElementById("acct");
 
   let study = false; // 📚 숙제 모드 (대화마다 따로 기억)
+  let game = null;   // 🧠 "quiz" | 🔤 "wordchain" | null
+  let persona = "kkanjuki"; // 캐릭터 (대화마다 따로 기억)
+  let mood = null;   // 방금 답의 표정 태그
   const studyEl = document.getElementById("study");
   const safetyEl = document.getElementById("safety");
   const searchEl = document.getElementById("search");
+  const botNameEl = document.getElementById("botName");
+  const menuEl = document.getElementById("menu");
+
+  const PERSONAS = {
+    kkanjuki: { name: "깐죽이", desc: "기본. 적당히 짓궂고 결국엔 도와줌" },
+    braggy: { name: "잘난척쟁이", desc: "뭐든 다 아는 척, 허세 폭발. 근데 알려주긴 함" },
+    sly: { name: "능청이", desc: "시치미 뚝, 엉뚱하게 받아치다 결국 답해줌" },
+  };
+  const MOODS = { "놀림": "😏", "신남": "😆", "당황": "😳", "다정": "🙂", "진지": "😐", "뿌듯": "😎" };
+  const GAMES = { quiz: { status: "🧠 퀴즈 중", start: "퀴즈 시작! 첫 문제 내줘", stop: "퀴즈 그만할래. 결과 알려줘" },
+                  wordchain: { status: "🔤 끝말잇기 중", start: "끝말잇기 하자! 네가 먼저 단어 하나 말해", stop: "끝말잇기 그만할래. 누가 이겼어?" } };
 
   function applyLevelLook(n) {
-    statusTextEl.textContent = study ? "📚 숙제 모드 (안 까불어)" : LEVELS[n].status;
+    statusTextEl.textContent = study ? "📚 숙제 모드 (안 까불어)" : game ? GAMES[game].status : LEVELS[n].status;
     headerEl.className = "header lv" + n + (study ? " studyOn" : "");
-    lvlBadgeEl.textContent = study ? "📚" : LEVELS[n].face;
-    studyEl.classList.toggle("on", study);
+    lvlBadgeEl.textContent = mood && MOODS[mood] ? MOODS[mood] : study ? "📚" : LEVELS[n].face;
+    botNameEl.textContent = (PERSONAS[persona] || PERSONAS.kkanjuki).name;
+    document.getElementById("studyOn").textContent = study ? "켜짐" : "";
+    document.getElementById("quizOn").textContent = game === "quiz" ? "진행 중" : "";
+    document.getElementById("wordOn").textContent = game === "wordchain" ? "진행 중" : "";
+  }
+
+  // 답 맨 앞의 {{놀림}} 같은 표정 태그를 떼어낸다. 스트리밍 중엔 태그가 덜 왔을 수 있어서 pending 표시
+  function splitMood(text) {
+    const m = text.match(/^\s*\{\{([^}]*)\}\}\s*/);
+    if (m) return { mood: m[1].trim(), text: text.slice(m[0].length).replace(/\{\{[^}]*\}\}/g, ""), pending: false };
+    if (/^\s*\{\{[^}]*$/.test(text) || /^\s*\{?$/.test(text)) return { mood: null, text: "", pending: true };
+    return { mood: null, text: text.replace(/\{\{[^}]*\}\}/g, ""), pending: false };
+  }
+  function setMood(m) {
+    mood = MOODS[m] ? m : null;
+    applyLevelLook(level);
   }
 
   function toggleStudy() {
@@ -607,7 +679,142 @@
     render();
     inputEl.focus();
   }
-  studyEl.addEventListener("click", toggleStudy);
+  studyEl.addEventListener("click", () => { closeMenu(); toggleStudy(); });
+
+  // ---- ＋ 메뉴 ----
+  function closeMenu() { menuEl.classList.remove("show"); }
+  attachEl.addEventListener("click", (e) => {
+    e.stopPropagation();
+    if (listening) { stopListening(); return; }
+    menuEl.classList.toggle("show");
+  });
+  document.addEventListener("click", (e) => { if (!menuEl.contains(e.target)) closeMenu(); });
+  document.getElementById("mPhoto").addEventListener("click", () => { closeMenu(); fileEl.click(); });
+
+  // ---- 놀이 모드 ----
+  async function toggleGame(kind) {
+    closeMenu();
+    if (loading) return;
+    if (game === kind) {
+      game = null;
+      applyLevelLook(level);
+      messages.push({ role: "user", content: GAMES[kind].stop });
+    } else {
+      game = kind;
+      study = false;
+      applyLevelLook(level);
+      messages.push({ role: "user", content: GAMES[kind].start });
+    }
+    await ask();
+  }
+  document.getElementById("mQuiz").addEventListener("click", () => toggleGame("quiz"));
+  document.getElementById("mWord").addEventListener("click", () => toggleGame("wordchain"));
+
+  // ---- 소리로 읽어주기 (브라우저 내장 TTS) ----
+  const speakEl = document.getElementById("speak");
+  let speakOn = false;
+  try { speakOn = localStorage.getItem("kkanjuki.speak") === "1"; } catch (e) {}
+  const canSpeak = "speechSynthesis" in window;
+  if (!canSpeak) speakEl.style.display = "none";
+  function renderSpeak() { speakEl.classList.toggle("off", !speakOn); speakEl.textContent = speakOn ? "🔊" : "🔇"; }
+  renderSpeak();
+  speakEl.addEventListener("click", () => {
+    speakOn = !speakOn;
+    try { localStorage.setItem("kkanjuki.speak", speakOn ? "1" : "0"); } catch (e) {}
+    renderSpeak();
+    if (!speakOn) speechSynthesis.cancel();
+    else toast("이제 답을 읽어줄게");
+  });
+  function koVoice() {
+    const vs = speechSynthesis.getVoices();
+    return vs.find((v) => /ko/i.test(v.lang) && /Google|Heami|SunHi|Yuna/i.test(v.name)) || vs.find((v) => /ko/i.test(v.lang)) || null;
+  }
+  function speak(text) {
+    if (!canSpeak || !speakOn || !text) return;
+    const clean = text
+      .replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu, " ") // 이모지 빼고
+      .replace(/ㅋ{2,}/g, "크크").replace(/ㅎ{2,}/g, "흐흐").replace(/ㅠ+|ㅜ+/g, "")
+      .replace(/📊/g, "").trim();
+    if (!clean) return;
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(clean);
+    u.lang = "ko-KR";
+    u.rate = 1.08;
+    u.pitch = 1.15;
+    const v = koVoice();
+    if (v) u.voice = v;
+    speechSynthesis.speak(u);
+  }
+  if (canSpeak) speechSynthesis.onvoiceschanged = () => {};
+
+  // ---- 말로 하기 (브라우저 내장 음성 인식 — 크롬/안드로이드) ----
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const micItem = document.getElementById("mMic");
+  if (!SR) micItem.style.display = "none";
+  let rec = null, listening = false;
+  function stopListening() { if (rec) { try { rec.stop(); } catch (e) {} } }
+  micItem.addEventListener("click", () => {
+    closeMenu();
+    if (!SR || listening || loading) return;
+    rec = new SR();
+    rec.lang = "ko-KR";
+    rec.interimResults = true;
+    rec.maxAlternatives = 1;
+    let finalText = "";
+    rec.onstart = () => { listening = true; attachEl.classList.add("listening"); attachEl.textContent = "●"; inputEl.placeholder = "듣는 중... 말해봐 (＋ 누르면 멈춤)"; };
+    rec.onresult = (e) => {
+      let interim = "";
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        if (e.results[i].isFinal) finalText += e.results[i][0].transcript;
+        else interim += e.results[i][0].transcript;
+      }
+      inputEl.value = (finalText + interim).trim();
+    };
+    rec.onerror = (e) => { if (e.error === "not-allowed") toast("마이크 권한이 꺼져 있어"); else if (e.error !== "aborted" && e.error !== "no-speech") toast("못 알아들었어 ㅠ 다시 해봐"); };
+    rec.onend = () => {
+      listening = false;
+      attachEl.classList.remove("listening"); attachEl.textContent = "＋";
+      renderPreview();
+      if (inputEl.value.trim()) send();
+    };
+    try { rec.start(); } catch (e) { toast("음성 인식을 시작 못 했어"); }
+  });
+
+  // ---- 시작 화면: 캐릭터 고르기 + 오늘의 한마디 ----
+  document.querySelectorAll("#personaChips .chip").forEach((c) => c.addEventListener("click", () => {
+    persona = c.dataset.persona;
+    document.querySelectorAll("#personaChips .chip").forEach((x) => x.classList.toggle("on", x === c));
+    document.getElementById("personaDesc").textContent = PERSONAS[persona].desc;
+  }));
+
+  const QUIPS = [
+    "오늘도 날 찾아왔네. 인기 실감난다 진짜 ㅋㅋ",
+    "세상에서 제일 추운 바다는? 썰렁해~ (…미안)",
+    "숙제 안 했지? 표정에 다 써 있어.",
+    "왕이 넘어지면? 킹콩. 자 이제 들어와.",
+    "오늘의 명언: 두괄식으로 말해라. — 깐죽이",
+    "딸기가 직장을 잃으면? 딸기시럽. ㅋㅋ 됐고 말 걸어.",
+    "내가 어제 꿈에서 널 봤는데, 거기서도 나한테 질문하더라.",
+    "소가 웃으면? 우하하. 소가 울면? 음메에~ 오늘 컨디션 좋네.",
+    "너 지금 뭐 물어볼지 다 알아. …아니 몰라. 빨리 말해.",
+    "세상에서 가장 빠른 닭은? 후다닭. 자, 깐죽 단계 골라.",
+    "오늘은 좀 봐줄까 말까 고민 중. 단계 고르면 알려줄게.",
+    "참새가 제일 좋아하는 과자는? 짹짹이. 아 됐어 들어와.",
+    "비가 한 시간 동안 내리면? 추적 60분. 내가 봐도 심했다.",
+    "오늘의 운세: 깐죽이한테 한 번 놀림당함. 100% 적중.",
+    "노래를 잘하는 사람이 사는 곳은? 음악실… 아니다 됐다.",
+    "어서 와. 오늘은 또 뭘 물어보려고 그래?",
+  ];
+  const quipEl = document.getElementById("quip");
+  let quipIdx = Math.floor((Date.now() / 86400000)) % QUIPS.length; // 날짜마다 바뀜
+  function renderQuip() {
+    quipEl.textContent = "";
+    quipEl.appendChild(document.createTextNode("💬 " + QUIPS[quipIdx]));
+    const s = document.createElement("small"); s.textContent = "오늘의 한마디 · 눌러서 다른 거";
+    quipEl.appendChild(s);
+  }
+  quipEl.addEventListener("click", () => { quipIdx = (quipIdx + 1 + Math.floor(Math.random() * (QUIPS.length - 1))) % QUIPS.length; renderQuip(); });
+  renderQuip();
 
   // 힘들거나 위험한 말이 보이면 안내를 띄우고, 서버에도 알려서 장난을 멈추게 한다
   const SAFETY_WORDS = ["죽고 싶", "죽고싶", "죽을래", "자살", "자해", "괴롭힘", "괴롭혀", "괴롭히", "왕따", "학폭", "학교폭력",
@@ -650,9 +857,11 @@
     image = null;
     loading = false;
     study = false;
+    game = null;
+    mood = null;
     safetyEl.classList.remove("show");
     currentId = newId();
-    chats.unshift({ id: currentId, level: n, title: null, pinned: false, study: false, createdAt: Date.now(), updatedAt: Date.now(), messages: [] });
+    chats.unshift({ id: currentId, level: n, title: null, pinned: false, study: false, persona: persona, game: null, createdAt: Date.now(), updatedAt: Date.now(), messages: [] });
     applyLevelLook(n);
     save();
     showChat();
@@ -668,6 +877,9 @@
     image = null;
     loading = false;
     study = !!chat.study;
+    game = GAMES[chat.game] ? chat.game : null;
+    persona = PERSONAS[chat.persona] ? chat.persona : "kkanjuki";
+    mood = null;
     safetyEl.classList.remove("show");
     applyLevelLook(level);
     persist();
@@ -1080,7 +1292,6 @@
     resetNudge();
   });
 
-  attachEl.addEventListener("click", () => fileEl.click());
   previewXEl.addEventListener("click", () => { image = null; renderPreview(); });
 
   let pendingSafety = false; // 이번 요청에 안전 모드를 같이 보낼지
@@ -1142,7 +1353,7 @@
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           messages: apiMessages, level: level, name: user ? user.nickname : null,
-          study: study, safety: pendingSafety,
+          study: study, safety: pendingSafety, persona: persona, game: game,
         }),
       });
 
@@ -1167,12 +1378,18 @@
         const r = await reader.read();
         if (r.done) break;
         bot.content += decoder.decode(r.value, { stream: true });
+        const p = splitMood(bot.content);
+        if (p.mood && p.mood !== mood) setMood(p.mood);
         const span = document.getElementById("msg-" + idx);
-        if (span) { span.textContent = bot.content; chatEl.scrollTop = chatEl.scrollHeight; }
+        if (span) { span.textContent = p.pending ? "" : p.text; chatEl.scrollTop = chatEl.scrollHeight; }
       }
       bot.streaming = false;
+      const done = splitMood(bot.content);
+      if (done.mood) setMood(done.mood);
+      bot.content = done.text.trim();
       if (!bot.content) bot.content = "어? 할 말을 잃었네 ㅋㅋ";
       if (bot.content.indexOf("삐빅-") === 0) bot.error = true; // 서버가 스트림 도중 실패 사유를 보낸 경우
+      else speak(bot.content);
     } catch (err) {
       console.error("[깐죽이] 통신 실패:", err);
       if (bot) { bot.streaming = false; if (!bot.content) messages.pop(); }
